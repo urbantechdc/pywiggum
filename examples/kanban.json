@@ -1,0 +1,105 @@
+{
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "Project Setup",
+      "blocked_by": [],
+      "tasks": [
+        {
+          "id": "M1.1",
+          "title": "Initialize SvelteKit project",
+          "description": "Run sv create to scaffold a new SvelteKit project with TypeScript and Tailwind",
+          "acceptance_criteria": [
+            "package.json exists with SvelteKit dependencies",
+            "npm run dev works and serves the app",
+            "Tailwind CSS is configured"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "M1.2",
+          "title": "Set up SQLite database",
+          "description": "Install better-sqlite3 and create initial database schema in src/lib/server/db.ts",
+          "acceptance_criteria": [
+            "better-sqlite3 installed",
+            "db.ts exports database connection",
+            "Database file is created on first run"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "M1.3",
+          "title": "Create TypeScript types",
+          "description": "Define core types in src/lib/types.ts for the application domain",
+          "acceptance_criteria": [
+            "types.ts exists with exported interfaces",
+            "Types are used in database schema"
+          ],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "name": "Core Features",
+      "blocked_by": ["M1"],
+      "tasks": [
+        {
+          "id": "M2.1",
+          "title": "Create home page layout",
+          "description": "Build the main layout component with dark theme (bg-slate-900) and cyan accents",
+          "acceptance_criteria": [
+            "routes/+page.svelte exists",
+            "Dark theme applied",
+            "Responsive design works on mobile"
+          ],
+          "status": "todo",
+          "type": "code"
+        },
+        {
+          "id": "M2.2",
+          "title": "Implement data CRUD operations",
+          "description": "Create server-side form actions for creating, reading, updating, and deleting records",
+          "acceptance_criteria": [
+            "+page.server.ts implements all CRUD actions",
+            "Database operations work correctly",
+            "Form validation is in place"
+          ],
+          "status": "todo",
+          "type": "code"
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "Testing & Polish",
+      "blocked_by": ["M2"],
+      "tasks": [
+        {
+          "id": "M3.1",
+          "title": "Add unit tests",
+          "description": "Write tests for database operations and utility functions",
+          "acceptance_criteria": [
+            "Tests exist for all CRUD operations",
+            "Tests pass with npm test",
+            "Coverage is above 80%"
+          ],
+          "status": "todo",
+          "type": "test"
+        },
+        {
+          "id": "M3.2",
+          "title": "Add documentation",
+          "description": "Write README and inline code comments",
+          "acceptance_criteria": [
+            "README.md explains how to run the project",
+            "Complex functions have comments",
+            "Environment variables are documented"
+          ],
+          "status": "todo",
+          "type": "planning"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyWiggum Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #06b6d4;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #0ea5e9;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: #14b8a6;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 1rem;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-running {
+            background: #10b981;
+        }
+
+        .status-paused {
+            background: #f59e0b;
+        }
+
+        .status-stopped {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0284c7;
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        input[type="number"], input[type="text"] {
+            padding: 0.5rem;
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            width: 100px;
+        }
+
+        input[type="text"] {
+            width: 300px;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-warning {
+            background: #78350f;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .alert-critical {
+            background: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #06b6d4, #14b8a6);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #06b6d4;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #06b6d4;
+        }
+
+        .panel {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #0f172a;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-todo {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        .status-done {
+            background: #065f46;
+            color: #10b981;
+        }
+
+        .status-failed {
+            background: #7f1d1d;
+            color: #ef4444;
+        }
+
+        .milestone {
+            margin-bottom: 1.5rem;
+        }
+
+        .milestone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            background: #0f172a;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .copy-btn {
+            background: #475569;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            background: #64748b;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚔 PyWiggum Dashboard</h1>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">"Me fail English? That's unpossible!" — Ralph Wiggum</p>
+
+        <div class="toolbar">
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Loading...</span>
+            </div>
+            <div>Iteration: <strong id="iteration">-</strong> / <strong id="max-iterations">-</strong></div>
+            <div>Velocity: <strong id="velocity">-</strong> min/task</div>
+            <div>ETA: <strong id="eta">-</strong></div>
+            <div id="drift-display" style="display: none;">Drift: <strong id="drift">-</strong></div>
+        </div>
+
+        <div id="alerts"></div>
+
+        <div class="controls">
+            <button id="pause-resume-btn" onclick="togglePause()">Pause</button>
+            <input type="number" id="add-iterations-input" placeholder="Add iterations" value="10">
+            <button onclick="addIterations()">Add Iterations</button>
+            <input type="text" id="hint-input" placeholder="Enter hint for agent">
+            <button onclick="sendHint()">Send Hint</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%">0%</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Tasks</div>
+                <div class="stat-value" id="total-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" id="done-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Remaining</div>
+                <div class="stat-value" id="todo-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value" id="failed-tasks">0</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="panel">
+                <h2>Kanban Board</h2>
+                <div id="milestones"></div>
+            </div>
+
+            <div class="panel">
+                <h2>Git Log</h2>
+                <div id="git-log"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Runner Log</h2>
+            <div id="runner-log"></div>
+        </div>
+
+        <div class="panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Claude Context Blob</h2>
+                <button class="copy-btn" onclick="copyClaudeBlob()">Copy</button>
+            </div>
+            <pre id="claude-blob">Loading...</pre>
+        </div>
+    </div>
+
+    <script>
+        let isPaused = false;
+        let currentStatus = null;
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                currentStatus = await response.json();
+                updateUI(currentStatus);
+            } catch (error) {
+                console.error('Failed to fetch status:', error);
+            }
+        }
+
+        async function fetchClaudeBlob() {
+            try {
+                const response = await fetch('/api/claude-blob');
+                const data = await response.json();
+                document.getElementById('claude-blob').textContent = data.blob;
+            } catch (error) {
+                console.error('Failed to fetch Claude blob:', error);
+            }
+        }
+
+        function updateUI(status) {
+            // Update toolbar
+            isPaused = status.paused;
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (isPaused) {
+                statusDot.className = 'status-dot status-paused';
+                statusText.textContent = 'Paused';
+                document.getElementById('pause-resume-btn').textContent = 'Resume';
+            } else if (status.kanban.todo > 0) {
+                statusDot.className = 'status-dot status-running';
+                statusText.textContent = 'Running';
+                document.getElementById('pause-resume-btn').textContent = 'Pause';
+            } else {
+                statusDot.className = 'status-dot status-stopped';
+                statusText.textContent = 'Stopped';
+                document.getElementById('pause-resume-btn').textContent = 'Pause';
+            }
+
+            document.getElementById('iteration').textContent = '-';
+            document.getElementById('max-iterations').textContent = status.max_iterations || '-';
+            document.getElementById('velocity').textContent = status.velocity.avg_minutes.toFixed(1);
+
+            // Update ETA
+            if (status.predicted_eta) {
+                const eta = new Date(status.predicted_eta);
+                document.getElementById('eta').textContent = eta.toLocaleString();
+            } else {
+                document.getElementById('eta').textContent = '-';
+            }
+
+            // Update drift
+            if (status.drift_minutes !== undefined) {
+                const driftDisplay = document.getElementById('drift-display');
+                driftDisplay.style.display = 'block';
+                const driftMinutes = Math.abs(status.drift_minutes);
+                const sign = status.drift_minutes > 0 ? '+' : '-';
+                document.getElementById('drift').textContent = `${sign}${driftMinutes.toFixed(0)} min`;
+            }
+
+            // Update alerts
+            updateAlerts(status);
+
+            // Update progress
+            const progress = status.kanban.progress_percent;
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.width = `${progress}%`;
+            progressFill.textContent = `${progress.toFixed(1)}%`;
+
+            // Update stats
+            document.getElementById('total-tasks').textContent = status.kanban.total;
+            document.getElementById('done-tasks').textContent = status.kanban.done;
+            document.getElementById('todo-tasks').textContent = status.kanban.todo;
+            document.getElementById('failed-tasks').textContent = status.kanban.failed;
+
+            // Update milestones
+            updateMilestones(status.milestones);
+
+            // Update git log
+            updateGitLog(status.git_log);
+
+            // Update runner log
+            updateRunnerLog(status.runner_log);
+        }
+
+        function updateAlerts(status) {
+            const alertsDiv = document.getElementById('alerts');
+            alertsDiv.innerHTML = '';
+
+            // Check for drift
+            if (status.drift_minutes !== undefined) {
+                if (status.drift_minutes > 60) {
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-critical';
+                    alert.textContent = `CRITICAL: Project is ${status.drift_minutes.toFixed(0)} minutes behind schedule!`;
+                    alertsDiv.appendChild(alert);
+                } else if (status.drift_minutes > 30) {
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-warning';
+                    alert.textContent = `WARNING: Project is ${status.drift_minutes.toFixed(0)} minutes behind schedule`;
+                    alertsDiv.appendChild(alert);
+                }
+            }
+        }
+
+        function updateMilestones(milestones) {
+            const milestonesDiv = document.getElementById('milestones');
+            milestonesDiv.innerHTML = '';
+
+            milestones.forEach(milestone => {
+                const milestoneDiv = document.createElement('div');
+                milestoneDiv.className = 'milestone';
+
+                const header = document.createElement('div');
+                header.className = 'milestone-header';
+                header.innerHTML = `
+                    <h3>${milestone.id}: ${milestone.name}</h3>
+                    <span>${milestone.done}/${milestone.total}</span>
+                `;
+                milestoneDiv.appendChild(header);
+
+                const taskList = document.createElement('ul');
+                taskList.className = 'task-list';
+
+                milestone.tasks.forEach(task => {
+                    const taskItem = document.createElement('li');
+                    taskItem.className = 'task-item';
+                    taskItem.innerHTML = `
+                        <div>
+                            <strong>${task.id}</strong>: ${task.title}
+                            ${task.note ? `<br><small style="color: #94a3b8;">${task.note}</small>` : ''}
+                        </div>
+                        <span class="task-status status-${task.status}">${task.status}</span>
+                    `;
+                    taskList.appendChild(taskItem);
+                });
+
+                milestoneDiv.appendChild(taskList);
+                milestonesDiv.appendChild(milestoneDiv);
+            });
+        }
+
+        function updateGitLog(gitLog) {
+            const gitLogDiv = document.getElementById('git-log');
+            gitLogDiv.innerHTML = '';
+
+            if (!gitLog || gitLog.length === 0) {
+                gitLogDiv.innerHTML = '<p style="color: #94a3b8;">No git commits</p>';
+                return;
+            }
+
+            gitLog.forEach(entry => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = entry;
+                gitLogDiv.appendChild(logEntry);
+            });
+        }
+
+        function updateRunnerLog(runnerLog) {
+            const runnerLogDiv = document.getElementById('runner-log');
+            runnerLogDiv.innerHTML = '';
+
+            if (!runnerLog || runnerLog.length === 0) {
+                runnerLogDiv.innerHTML = '<p style="color: #94a3b8;">No runner logs</p>';
+                return;
+            }
+
+            runnerLog.forEach(entry => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = entry;
+                runnerLogDiv.appendChild(logEntry);
+            });
+        }
+
+        async function togglePause() {
+            const action = isPaused ? 'resume' : 'pause';
+            try {
+                await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                await fetchStatus();
+            } catch (error) {
+                console.error('Failed to toggle pause:', error);
+            }
+        }
+
+        async function addIterations() {
+            const input = document.getElementById('add-iterations-input');
+            const value = input.value;
+
+            if (!value) return;
+
+            try {
+                await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add-iterations', value })
+                });
+                input.value = '10';
+                await fetchStatus();
+            } catch (error) {
+                console.error('Failed to add iterations:', error);
+            }
+        }
+
+        async function sendHint() {
+            const input = document.getElementById('hint-input');
+            const value = input.value;
+
+            if (!value) return;
+
+            try {
+                await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'hint', value })
+                });
+                input.value = '';
+                alert('Hint sent to runner!');
+            } catch (error) {
+                console.error('Failed to send hint:', error);
+            }
+        }
+
+        function copyClaudeBlob() {
+            const blob = document.getElementById('claude-blob').textContent;
+            navigator.clipboard.writeText(blob);
+            alert('Copied to clipboard!');
+        }
+
+        // Auto-refresh
+        fetchStatus();
+        fetchClaudeBlob();
+        setInterval(fetchStatus, 15000);
+        setInterval(fetchClaudeBlob, 15000);
+    </script>
+</body>
+</html>

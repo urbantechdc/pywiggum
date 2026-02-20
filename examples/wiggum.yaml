@@ -1,0 +1,38 @@
+# Example PyWiggum configuration
+
+# Project metadata
+project:
+  name: "Example SvelteKit Project"
+  kanban: "kanban.json"
+  work_dir: "."
+
+# Agent configuration
+agent:
+  backend: "opencode"           # opencode | claude_code | api
+  model: "vllm/qwen3-coder-next"
+  timeout: 600                  # seconds per iteration
+
+# Runner settings
+runner:
+  max_iterations: 50
+  sleep_between: 3              # seconds between iterations
+  commit_after_task: true       # git commit on task completion
+  commit_format: "{task_id}: {task_title}"
+
+# Dashboard
+dashboard:
+  port: 3333
+  host: "0.0.0.0"
+  refresh_interval: 15          # seconds
+
+# Prompt customization
+prompt:
+  tech_stack: |
+    SvelteKit 5, TypeScript, better-sqlite3, Tailwind CSS
+    Use $state(), $derived(), $effect() (Svelte 5 runes)
+    Dark theme: bg-slate-900, accent cyan-500
+  conventions: |
+    All database code in src/lib/server/db.ts
+    Types in src/lib/types.ts
+    Components in src/lib/components/
+  extra_context: ""             # Appended to every prompt
