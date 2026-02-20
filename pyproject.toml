@@ -45,9 +45,9 @@ dev = [
 pywiggum = "pywiggum.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/pywiggum/pywiggum"
-Repository = "https://github.com/pywiggum/pywiggum"
-Issues = "https://github.com/pywiggum/pywiggum/issues"
+Homepage = "https://github.com/urbantechdc/pywiggum"
+Repository = "https://github.com/urbantechdc/pywiggum"
+Issues = "https://github.com/urbantechdc/pywiggum/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pywiggum"]
