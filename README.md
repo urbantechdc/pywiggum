@@ -17,8 +17,8 @@ PyWiggum is a Python-based autonomous AI coding agent orchestrator with a built-
 2. **Web dashboard**: Real-time kanban, velocity tracking, stall detection, baseline drift monitoring, ETA predictions
 3. **Human-in-the-loop via web UI**: Pause/resume, hint injection, iteration control — no Telegram bot or CLI-only interaction
 4. **Kanban-driven**: Uses a structured kanban.json (not PRD/user-stories), supports milestones with dependency ordering
-5. **Model routing** (Layer 2, coming soon): Different models for different task types
-6. **Escalation** (Layer 3, coming soon): Automatic escalation to frontier models when local model is stuck
+5. **🚔 Springfield PD routing**: Multi-agent hierarchy (Ralph → Eddie → Lou → Chief Matt) with automatic escalation
+6. **Smart task routing**: Route different task types to different agents based on complexity
 
 ## Installation
 
@@ -303,6 +303,57 @@ agent:
 pywiggum run --agent claude_code
 ```
 
+## 🚔 Springfield PD: Multi-Agent Routing
+
+PyWiggum includes a hierarchical agent routing system inspired by Springfield's police department:
+
+```
+👮 Ralph (Wiggum)  →  👮‍♂️ Eddie  →  👨‍✈️ Lou  →  👨‍💼 Chief Matt
+   Local model      Better local   Claude     Human
+```
+
+**The Team:**
+- **Ralph**: Local model (Qwen 3), handles basic tasks
+- **Eddie**: Better local model (Qwen 32B), moderate complexity
+- **Lou**: Frontier model (Claude), complex reasoning
+- **Chief Matt**: Human in the loop, final authority
+
+**Example configuration:**
+
+```yaml
+routing:
+  agents:
+    ralph:
+      backend: "opencode"
+      model: "vllm/qwen3-coder-next"
+    eddie:
+      backend: "opencode"
+      model: "vllm/qwen3-32b-instruct"
+    lou:
+      backend: "claude_code"
+    matt:
+      backend: "human"
+
+  rules:
+    - task_type: "planning"
+      agent_level: "lou"
+    - task_type: "test"
+      agent_level: "ralph"
+
+  escalation:
+    enabled: true
+    trigger_after_iterations: 3
+    escalation_chain: ["ralph", "eddie", "lou", "matt"]
+```
+
+**How it works:**
+1. Ralph starts with most tasks (cheap, fast)
+2. If Ralph fails 3 times → escalate to Eddie
+3. If Eddie fails → escalate to Lou (Claude)
+4. If Lou fails → escalate to Chief Matt (you!)
+
+**See [SPRINGFIELD_PD.md](SPRINGFIELD_PD.md) for full documentation.**
+
 ## Development
 
 ```bash
@@ -325,31 +376,20 @@ mypy src/pywiggum
 
 ## Roadmap
 
-### Layer 2: Model Routing
+### ✅ Layer 2 & 3: Springfield PD (Complete!)
 
-Config-driven model selection per task type:
+Multi-agent routing with automatic escalation. See [SPRINGFIELD_PD.md](SPRINGFIELD_PD.md).
 
-```yaml
-routing:
-  code: "vllm/qwen3-coder-next"
-  planning: "anthropic/claude-sonnet-4-5"
-  test: "vllm/qwen3-coder-next"
-```
+### Layer 4: Future Ideas
 
-### Layer 3: Escalation
+These are potential future enhancements. Vote or suggest via GitHub issues!
 
-Automatic escalation to frontier models when stuck:
-
-```yaml
-escalation:
-  trigger_after: 3  # iterations without progress
-  model: "anthropic/claude-sonnet-4-5"
-  api_key_env: "ANTHROPIC_API_KEY"
-```
-
-### Layer 4: TBD
-
-Multi-agent coordination? Parallel task execution? Self-improving prompts? You tell us!
+- **Parallel execution**: Run independent tasks simultaneously
+- **Self-improving prompts**: Learn from successful completions
+- **Multi-agent collaboration**: Agents work together on complex tasks
+- **Checkpoint/resume**: Save and restore runner state
+- **Remote runners**: Distribute work across machines
+- **Plugin system**: Custom agents and integrations
 
 ## Design Principles
 

@@ -9,6 +9,7 @@ __version__ = "0.1.0"
 
 from pywiggum.config import WiggumConfig
 from pywiggum.kanban import KanbanManager, Milestone, Task
+from pywiggum.routing import AgentLevel, Router, RoutingConfig
 from pywiggum.runner import Runner
 
 __all__ = [
@@ -18,4 +19,7 @@ __all__ = [
     "Milestone",
     "Task",
     "Runner",
+    "Router",
+    "RoutingConfig",
+    "AgentLevel",
 ]

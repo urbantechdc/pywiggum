@@ -6,6 +6,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
+from pywiggum.routing import RoutingConfig
+
 
 class ProjectConfig(BaseModel):
     """Project metadata configuration."""
@@ -58,6 +60,7 @@ class WiggumConfig(BaseModel):
     runner: RunnerConfig = Field(default_factory=RunnerConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     prompt: PromptConfig = Field(default_factory=PromptConfig)
+    routing: RoutingConfig | None = None  # Optional Layer 2/3 routing
 
     @classmethod
     def load(cls, config_path: Path) -> "WiggumConfig":

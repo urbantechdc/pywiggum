@@ -12,6 +12,7 @@ from pywiggum.controls import Controls
 from pywiggum.history import HistoryTracker, TaskCompletion
 from pywiggum.kanban import KanbanManager
 from pywiggum.prompt import PromptBuilder
+from pywiggum.routing import AgentLevel, Router
 
 # Set up logging
 logging.basicConfig(
@@ -52,6 +53,12 @@ class Runner:
         self.history = HistoryTracker(self.work_dir)
         self.prompt_builder = PromptBuilder(config)
 
+        # Initialize routing if enabled
+        self.router: Router | None = None
+        if config.routing:
+            self.router = Router(config.routing)
+            logger.info("🚔 Springfield PD routing enabled!")
+
         # Initialize agent
         self.agent = self._create_agent()
 
@@ -59,6 +66,8 @@ class Runner:
         self.current_iteration = 0
         self.current_task_id: str | None = None
         self.current_task_start: datetime | None = None
+        self.current_task_iterations: int = 0
+        self.current_agent_level: AgentLevel = AgentLevel.RALPH
 
     def _create_agent(self) -> BaseAgent:
         """Create the agent backend based on configuration.
@@ -87,6 +96,11 @@ class Runner:
                 api_base_url=self.config.agent.api_base_url,
                 api_key_env=self.config.agent.api_key_env,
             )
+        elif backend == "human":
+            # Import here to avoid circular dependency
+            from pywiggum.agents.human import HumanAgent
+
+            agent = HumanAgent()
         else:
             raise ValueError(f"Unsupported agent backend: {backend}")
 
@@ -94,6 +108,39 @@ class Runner:
             raise ValueError(f"Agent backend '{backend}' is not available")
 
         return agent
+
+    def _create_agent_from_config(self, agent_config: dict) -> BaseAgent:
+        """Create an agent from a routing config dictionary.
+
+        Args:
+            agent_config: Agent configuration from router
+
+        Returns:
+            Agent instance
+        """
+        backend = agent_config.get("backend", "opencode")
+        model = agent_config.get("model", "vllm/qwen3-coder-next")
+
+        if backend == "opencode":
+            return OpenCodeAgent(model)
+        elif backend == "claude_code":
+            from pywiggum.agents.claude_code import ClaudeCodeAgent
+
+            return ClaudeCodeAgent()
+        elif backend == "api":
+            from pywiggum.agents.api import APIAgent
+
+            return APIAgent(
+                model=model,
+                api_base_url=agent_config.get("api_base_url"),
+                api_key_env=agent_config.get("api_key_env"),
+            )
+        elif backend == "human":
+            from pywiggum.agents.human import HumanAgent
+
+            return HumanAgent()
+        else:
+            raise ValueError(f"Unsupported agent backend: {backend}")
 
     def run(self) -> None:
         """Run the main orchestration loop."""
@@ -139,14 +186,53 @@ class Runner:
                 break
 
             milestone, task = next_task
+
+            # Check if this is a new task or continuing previous
+            is_new_task = task.id != self.current_task_id
+            if is_new_task:
+                self.current_task_id = task.id
+                self.current_task_start = datetime.now()
+                self.current_task_iterations = 0
+                self.current_agent_level = AgentLevel.RALPH
+
+            self.current_task_iterations += 1
+
+            # Routing: determine which agent to use
+            if self.router:
+                # Check for escalation
+                duration = (datetime.now() - self.current_task_start).total_seconds()
+                should_escalate = self.router.should_escalate(
+                    self.current_task_iterations, duration
+                )
+
+                if should_escalate:
+                    next_level = self.router.escalate(self.current_agent_level)
+                    if next_level:
+                        logger.warning(
+                            f"⚠️  Escalating from {self.current_agent_level.value} to {next_level.value}!"
+                        )
+                        logger.info(f"   {self.router.get_agent_description(next_level)}")
+                        self.current_agent_level = next_level
+
+                # Route task to appropriate agent
+                agent_level, agent_config = self.router.route_task(
+                    task_id=task.id,
+                    task_type=task.type,
+                    milestone_id=milestone.id,
+                    current_level=self.current_agent_level,
+                )
+
+                # Create agent for this level if different from current
+                if agent_level != self.current_agent_level or is_new_task:
+                    self.current_agent_level = agent_level
+                    logger.info(f"🚔 {self.router.get_agent_description(agent_level)}")
+                    self.agent = self._create_agent_from_config(agent_config)
+
             logger.info(
                 f"Iteration {self.current_iteration}/{max_iterations}: "
-                f"Starting task {task.id} - {task.title}"
+                f"Task {task.id} - {task.title} "
+                f"(attempt {self.current_task_iterations})"
             )
-
-            # Track task start
-            self.current_task_id = task.id
-            self.current_task_start = datetime.now()
 
             # Check for hint
             hint = self.controls.consume_hint()
@@ -198,8 +284,11 @@ class Runner:
                 # Reset task tracking
                 self.current_task_id = None
                 self.current_task_start = None
+                self.current_task_iterations = 0
+                self.current_agent_level = AgentLevel.RALPH
             else:
                 logger.warning(f"Task {task.id} was not updated by agent")
+                # Task continues, iterations will increment next loop
 
             # Sleep between iterations
             time.sleep(self.config.runner.sleep_between)
@@ -221,6 +310,9 @@ class Runner:
             "iteration": self.current_iteration,
             "max_iterations": self.controls.get_max_iterations(),
             "current_task": self.current_task_id,
+            "current_task_iterations": self.current_task_iterations,
+            "current_agent_level": self.current_agent_level.value if self.router else None,
+            "routing_enabled": self.router is not None,
             "kanban_stats": stats,
             "history_stats": history_stats,
         }

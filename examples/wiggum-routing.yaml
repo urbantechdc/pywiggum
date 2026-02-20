@@ -1,0 +1,92 @@
+# Example PyWiggum configuration with Springfield PD routing enabled
+# The hierarchy: Ralph → Eddie → Lou → Chief Matt
+
+# Project metadata
+project:
+  name: "Example SvelteKit Project with Springfield PD"
+  kanban: "kanban.json"
+  work_dir: "."
+
+# Default agent configuration (used when routing is disabled)
+agent:
+  backend: "opencode"
+  model: "vllm/qwen3-coder-next"
+  timeout: 600
+
+# Runner settings
+runner:
+  max_iterations: 100
+  sleep_between: 3
+  commit_after_task: true
+  commit_format: "{task_id}: {task_title}"
+
+# Dashboard
+dashboard:
+  port: 3333
+  host: "0.0.0.0"
+  refresh_interval: 15
+
+# Prompt customization
+prompt:
+  tech_stack: |
+    SvelteKit 5, TypeScript, better-sqlite3, Tailwind CSS
+    Use $state(), $derived(), $effect() (Svelte 5 runes)
+  conventions: |
+    All database code in src/lib/server/db.ts
+    Types in src/lib/types.ts
+  extra_context: ""
+
+# 🚔 Springfield PD Routing Configuration (Layer 2/3)
+routing:
+  # Agent definitions by level
+  agents:
+    ralph:  # Basic local model
+      backend: "opencode"
+      model: "vllm/qwen3-coder-next"
+      description: "Ralph (Wiggum) - Local model, does the grunt work"
+
+    eddie:  # Better local model
+      backend: "opencode"
+      model: "vllm/qwen3-32b-instruct"
+      description: "Eddie - Better local model, steps in when Ralph struggles"
+
+    lou:  # Frontier model
+      backend: "claude_code"
+      model: "claude-sonnet-4-5"
+      description: "Lou - Frontier model (Claude), handles complex cases"
+
+    matt:  # Human in the loop
+      backend: "human"
+      description: "Chief Matt - Human in the loop, final authority"
+
+  # Routing rules (first match wins)
+  rules:
+    # Planning tasks go straight to Lou (Claude)
+    - task_type: "planning"
+      agent_level: "lou"
+
+    # Tests can be handled by Ralph
+    - task_type: "test"
+      agent_level: "ralph"
+
+    # Milestone 3 is complex, start with Eddie
+    - milestone_id: "M3"
+      agent_level: "eddie"
+
+    # Task M2.2 is known to be tricky, start with Lou
+    - task_id_pattern: "M2\\.2"
+      agent_level: "lou"
+
+  # Default agent for tasks that don't match any rule
+  default_agent: "ralph"
+
+  # Escalation configuration
+  escalation:
+    enabled: true
+    trigger_after_iterations: 3  # Escalate after 3 failed attempts
+    trigger_after_duration: 1800  # Escalate after 30 minutes
+    escalation_chain:
+      - "ralph"   # 👮 Start here
+      - "eddie"   # 👮‍♂️ Escalate to better local model
+      - "lou"     # 👨‍✈️ Escalate to Claude
+      - "matt"    # 👨‍💼 Finally, ask human

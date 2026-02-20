@@ -5,6 +5,19 @@ All notable changes to PyWiggum will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- 🚔 Springfield PD multi-agent routing system (Layer 2/3)
+  - Hierarchical agent levels: Ralph → Eddie → Lou → Chief Matt
+  - Task routing by type, milestone, or pattern
+  - Automatic escalation based on iterations or duration
+  - Human-in-the-loop agent (Chief Matt)
+- Routing configuration in wiggum.yaml
+- 9 new tests for routing system (25 total)
+- SPRINGFIELD_PD.md documentation
+- Example routing configuration
+
 ## [0.1.0] - 2026-02-20
 
 ### Added
