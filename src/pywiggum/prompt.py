@@ -43,7 +43,9 @@ class PromptBuilder:
             "2. Find the first task with status 'todo' whose milestone is not blocked.",
             "3. Implement the task. Write code, create files, install packages as needed.",
             "4. Verify your work against the acceptance criteria.",
-            f"5. Update {kanban_path}: set status to 'done' or 'failed' (with note).",
+            f"5. CRITICAL: Update {kanban_path}: set the task's status to 'done' (or 'failed' with a note). "
+            f"This step is MANDATORY — if you skip it, the task will be re-run. "
+            f"Edit the JSON file directly to change \"status\": \"todo\" to \"status\": \"done\".",
         ]
 
         # Add git commit instruction if enabled
