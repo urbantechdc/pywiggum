@@ -164,8 +164,19 @@ class Runner:
             logger.info(f"Set baseline ETA for {stats['todo']} remaining tasks")
 
         # Main loop
+        try:
+            self._run_loop(max_iterations)
+        finally:
+            self.controls.clear_state()
+            logger.info(f"Runner completed after {self.current_iteration} iterations")
+
+    def _run_loop(self, max_iterations: int) -> None:
+        """Inner loop, separated so finally block can clean up state."""
         while self.current_iteration < max_iterations:
             self.current_iteration += 1
+
+            # Write heartbeat state
+            self.controls.write_state(self.current_iteration, self.current_task_id)
 
             # Check for max iterations update
             new_max = self.controls.get_max_iterations()
@@ -271,7 +282,7 @@ class Runner:
                     started_at=self.current_task_start.isoformat(),
                     completed_at=datetime.now().isoformat(),
                     duration_seconds=duration,
-                    iterations=1,
+                    iterations=self.current_task_iterations,
                     status=updated_task.status,
                 )
 
@@ -292,8 +303,6 @@ class Runner:
 
             # Sleep between iterations
             time.sleep(self.config.runner.sleep_between)
-
-        logger.info(f"Runner completed after {self.current_iteration} iterations")
 
     def get_status(self) -> dict:
         """Get current runner status.

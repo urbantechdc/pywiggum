@@ -76,6 +76,16 @@
             background: #ef4444;
         }
 
+        .status-crashed {
+            background: #ef4444;
+            animation: crash-pulse 0.5s infinite;
+        }
+
+        @keyframes crash-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -391,9 +401,13 @@
                 statusDot.className = 'status-dot status-paused';
                 statusText.textContent = 'Paused';
                 document.getElementById('pause-resume-btn').textContent = 'Resume';
-            } else if (status.kanban.todo > 0) {
+            } else if (status.runner_alive) {
                 statusDot.className = 'status-dot status-running';
                 statusText.textContent = 'Running';
+                document.getElementById('pause-resume-btn').textContent = 'Pause';
+            } else if (status.runner_crashed) {
+                statusDot.className = 'status-dot status-crashed';
+                statusText.textContent = 'Crashed';
                 document.getElementById('pause-resume-btn').textContent = 'Pause';
             } else {
                 statusDot.className = 'status-dot status-stopped';
@@ -401,7 +415,7 @@
                 document.getElementById('pause-resume-btn').textContent = 'Pause';
             }
 
-            document.getElementById('iteration').textContent = '-';
+            document.getElementById('iteration').textContent = status.iterations_used || '0';
             document.getElementById('max-iterations').textContent = status.max_iterations || '-';
             document.getElementById('velocity').textContent = status.velocity.avg_minutes.toFixed(1);
 
@@ -592,8 +606,48 @@
 
         function copyClaudeBlob() {
             const blob = document.getElementById('claude-blob').textContent;
-            navigator.clipboard.writeText(blob);
-            alert('Copied to clipboard!');
+            const btn = document.querySelector('.copy-btn');
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(blob).then(() => {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy', 2000);
+                }).catch(() => fallbackCopy(blob, btn));
+            } else {
+                fallbackCopy(blob, btn);
+            }
+        }
+
+        function fallbackCopy(text, btn) {
+            // Use a textarea + execCommand for HTTP contexts
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            // Must be visible and in viewport for execCommand to work
+            textarea.style.position = 'fixed';
+            textarea.style.left = '0';
+            textarea.style.top = '0';
+            textarea.style.opacity = '0.01';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            let ok = false;
+            try {
+                ok = document.execCommand('copy');
+            } catch (e) {
+                // ignore
+            }
+            document.body.removeChild(textarea);
+            if (ok) {
+                btn.textContent = 'Copied!';
+            } else {
+                // Last resort: prompt user to copy manually
+                window.prompt('Copy this text:', text);
+                btn.textContent = 'Copy';
+                return;
+            }
+            setTimeout(() => btn.textContent = 'Copy', 2000);
         }
 
         // Auto-refresh

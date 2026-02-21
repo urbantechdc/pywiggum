@@ -116,6 +116,19 @@ def create_api_routes(config: WiggumConfig) -> APIRouter:
         if history.baseline_eta:
             status["baseline_eta"] = history.baseline_eta.isoformat()
 
+        # Check runner process
+        runner_state = controls.read_state()
+        runner_alive = controls.is_runner_alive()
+        status["runner_alive"] = runner_alive
+        status["runner_crashed"] = not runner_alive and runner_state is not None
+        if runner_state:
+            status["iterations_used"] = runner_state.get("iteration", 0)
+        else:
+            # No state file — estimate from history
+            status["iterations_used"] = sum(
+                c.iterations for c in history.completions
+            )
+
         # Get git log
         try:
             result = subprocess.run(
@@ -160,9 +173,28 @@ def create_api_routes(config: WiggumConfig) -> APIRouter:
         stats = kanban.get_stats()
         history_stats = history.get_stats()
 
+        runner_alive = controls.is_runner_alive()
+        runner_state = controls.read_state()
+
+        # Determine runner status label
+        if controls.is_paused():
+            status_label = "Paused"
+        elif runner_alive:
+            status_label = "Running"
+        else:
+            status_label = "Crashed" if runner_state else "Stopped"
+
+        # Iteration info
+        if runner_state:
+            iterations_used = runner_state.get("iteration", 0)
+        else:
+            iterations_used = sum(c.iterations for c in history.completions)
+        max_iter = controls.get_max_iterations()
+
         blob_parts = [
             f"# {config.project.name} - PyWiggum Status",
-            f"Paused: {controls.is_paused()}",
+            f"Status: {status_label}",
+            f"Iterations: {iterations_used}/{max_iter or '?'}",
             f"Progress: {stats['done']}/{stats['total']} tasks ({stats['done']/stats['total']*100:.1f}%)",
             f"Avg velocity: {history_stats['avg_duration_minutes']:.1f} min/task",
         ]
@@ -170,6 +202,19 @@ def create_api_routes(config: WiggumConfig) -> APIRouter:
         eta = history.predict_eta(stats["todo"])
         if eta:
             blob_parts.append(f"ETA: {eta.strftime('%Y-%m-%d %H:%M')}")
+
+        # If crashed, include tail of runner log
+        if not runner_alive and runner_state:
+            log_file = work_dir / "wiggum.log"
+            if log_file.exists():
+                try:
+                    lines = log_file.read_text().strip().split("\n")
+                    tail = lines[-10:]
+                    blob_parts.append("")
+                    blob_parts.append("## Crash Log (last 10 lines)")
+                    blob_parts.extend(tail)
+                except Exception:
+                    pass
 
         blob = "\n".join(blob_parts)
 

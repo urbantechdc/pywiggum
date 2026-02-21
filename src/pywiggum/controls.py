@@ -1,5 +1,7 @@
 """File-based IPC controls for PyWiggum runner."""
 
+import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +21,7 @@ class Controls:
         self.max_file = work_dir / ".wiggum-max"
         self.hint_file = work_dir / ".wiggum-hint"
         self.hints_archive_dir = work_dir / ".wiggum-hints-archive"
+        self.state_file = work_dir / ".wiggum-state.json"
 
         # Ensure hints archive directory exists
         self.hints_archive_dir.mkdir(exist_ok=True)
@@ -130,3 +133,54 @@ class Controls:
         """
         while self.is_paused():
             time.sleep(check_interval)
+
+    def write_state(self, iteration: int, task_id: str | None = None) -> None:
+        """Write runner state (PID, iteration, heartbeat).
+
+        Args:
+            iteration: Current iteration number
+            task_id: Current task ID if active
+        """
+        state = {
+            "pid": os.getpid(),
+            "iteration": iteration,
+            "task_id": task_id,
+            "updated_at": datetime.now().isoformat(),
+        }
+        self.state_file.write_text(json.dumps(state))
+
+    def clear_state(self) -> None:
+        """Remove state file on clean shutdown."""
+        if self.state_file.exists():
+            self.state_file.unlink()
+
+    def read_state(self) -> dict | None:
+        """Read runner state file.
+
+        Returns:
+            State dict or None if file doesn't exist
+        """
+        if not self.state_file.exists():
+            return None
+        try:
+            return json.loads(self.state_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def is_runner_alive(self) -> bool:
+        """Check if the runner process is still alive.
+
+        Returns:
+            True if runner PID exists and process is running
+        """
+        state = self.read_state()
+        if state is None:
+            return False
+        pid = state.get("pid")
+        if pid is None:
+            return False
+        try:
+            os.kill(pid, 0)
+            return True
+        except (ProcessLookupError, PermissionError):
+            return False
